@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Muscle Identification Quiz</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+    }
+
+    .app {
+      max-width: 700px;
+      width: 100%;
+      padding: 1.5rem;
+      margin: 2rem 1rem;
+      background: #020617;
+      border-radius: 1rem;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    h1 {
+      margin-top: 0;
+      margin-bottom: 0.5rem;
+      font-size: 1.8rem;
+      color: #38bdf8;
+      text-align: center;
+    }
+
+    .scoreboard {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+      color: #9ca3af;
+    }
+
+    #question-box {
+      background: #020617;
+      border: 1px solid #1f2933;
+      border-radius: 0.75rem;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    #question-text {
+      margin-top: 0;
+      margin-bottom: 0.75rem;
+      font-weight: 600;
+    }
+
+    #muscle-details {
+      list-style: none;
+      padding-left: 0;
+      margin: 0;
+      font-size: 0.95rem;
+    }
+
+    #muscle-details li {
+      margin-bottom: 0.25rem;
+    }
+
+    #choices {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .choice-btn {
+      width: 100%;
+      text-align: left;
+      padding: 0.6rem 0.8rem;
+      background: #020617;
+      border-radius: 0.6rem;
+      border: 1px solid #1f2937;
+      color: #e5e7eb;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.05s ease, border-color 0.15s ease;
+    }
+
+    .choice-btn:hover {
+      background: #111827;
+      transform: translateY(-1px);
+    }
+
+    .choice-btn.correct {
+      border-color: #22c55e;
+      background: #064e3b;
+    }
+
+    .choice-btn.incorrect {
+      border-color: #f97373;
+      background: #7f1d1d;
+    }
+
+    #next-btn {
+      padding: 0.6rem 1rem;
+      border-radius: 999px;
+      border: none;
+      background: #38bdf8;
+      color: #020617;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.05s ease, opacity 0.15s ease;
+      display: block;
+      margin: 0 auto;
+    }
+
+    #next-btn:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    #next-btn:not(:disabled):hover {
+      background: #0ea5e9;
+      transform: translateY(-1px);
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    #result {
+      margin-top: 1rem;
+      font-size: 0.95rem;
+      color: #e5e7eb;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>Muscle Identification Quiz</h1>
+
+    <div class="scoreboard">
+      <span id="question-counter"></span>
+      <span id="score"></span>
+    </div>
+
+    <div id="question-box">
+      <p id="question-text"></p>
+      <ul id="muscle-details">
+        <li><strong>Origin:</strong> <span id="origin-text"></span></li>
+        <li><strong>Insertion:</strong> <span id="insertion-text"></span></li>
+        <li><strong>Action:</strong> <span id="action-text"></span></li>
+      </ul>
+    </div>
+
+    <div id="choices"></div>
+
+    <button id="next-btn" disabled>Next question</button>
+
+    <div id="result" class="hidden"></div>
+  </div>
+
+  <script>
+    // 1. Question bank – add more muscles here as you go.
+    const MUSCLE_QUESTIONS = [
+      {
+        name: "Biceps brachii",
+        origin: "Short head: coracoid process; long head: supraglenoid tubercle of scapula",
+        insertion: "Radial tuberosity",
+        action: "Flexion at elbow; supination; flexion at shoulder (long head)"
+      },
+      {
+        name: "Brachialis",
+        origin: "Anterior distal humerus",
+        insertion: "Coronoid process of ulna",
+        action: "Flexion at elbow"
+      },
+      {
+        name: "Brachioradialis",
+        origin: "Lateral distal humerus",
+        insertion: "Styloid process of radius",
+        action: "Flexion at elbow"
+      },
+      {
+        name: "Triceps brachii",
+        origin: "Long head: infraglenoid tubercle of scapula; medial & lateral heads: posterior shaft of humerus",
+        insertion: "Olecranon of ulna",
+        action: "Extension at elbow; extension and adduction at shoulder (long head)"
+      },
+      {
+        name: "Flexor carpi radialis",
+        origin: "Medial epicondyle of humerus",
+        insertion: "Base of metacarpals 2 & 3",
+        action: "Flexion and abduction at wrist"
+      },
+      {
+        name: "Flexor carpi ulnaris",
+        origin: "Medial epicondyle of humerus and olecranon; posterior surface of ulna",
+        insertion: "Carpals and base of metacarpal 5",
+        action: "Flexion and adduction at wrist"
+      },
+      {
+        name: "Extensor carpi radialis longus",
+        origin: "Lateral supracondylar ridge of humerus",
+        insertion: "Base of metacarpal 2",
+        action: "Extension and abduction at wrist"
+      },
+      {
+        name: "Extensor carpi ulnaris",
+        origin: "Lateral epicondyle of humerus; dorsal ulna",
+        insertion: "Base of metacarpal 5",
+        action: "Extension and adduction at wrist"
+      },
+      {
+        name: "Gluteus maximus",
+        origin: "Dorsal ilium; sacrum; coccyx",
+        insertion: "Iliotibial tract; gluteal tuberosity of femur",
+        action: "Extension, abduction, lateral rotation at hip"
+      },
+      {
+        name: "Gluteus medius",
+        origin: "Upper lateral surface of ilium",
+        insertion: "Greater trochanter of femur",
+        action: "Abduction and medial rotation at hip"
+      },
+      {
+        name: "Piriformis",
+        origin: "Anterior, lateral sacrum",
+        insertion: "Superior border of greater trochanter",
+        action: "Lateral rotation and abduction of hip"
+      },
+      {
+        name: "Gracilis",
+        origin: "Inferior ramus and body of pubis",
+        insertion: "Medial tibia inferior to medial condyle",
+        action: "Adduction, flexion, and medial rotation of hip"
+      },
+      {
+        name: "Pectineus",
+        origin: "Superior ramus of pubis",
+        insertion: "Inferior to lesser trochanter of femur",
+        action: "Adduction and flexion of hip"
+      },
+      {
+        name: "Iliacus",
+        origin: "Iliac fossa and crest; ala of sacrum",
+        insertion: "Lesser trochanter of femur",
+        action: "Hip flexion; trunk flexion"
+      },
+      {
+        name: "Psoas major",
+        origin: "T12–L5 vertebrae (bodies, discs, and transverse processes)",
+        insertion: "Lesser trochanter of femur",
+        action: "Hip flexion; trunk flexion; lateral flexion of lumbar spine"
+      },
+      {
+        name: "Sartorius",
+        origin: "Anterior superior iliac spine",
+        insertion: "Medial aspect of proximal tibia",
+        action: "Flexion, abduction, and lateral rotation of hip; flexion at knee"
+      },
+      {
+        name: "Tensor fascia lata",
+        origin: "Anterior iliac crest; anterior superior iliac spine",
+        insertion: "Iliotibial tract",
+        action: "Steadies leg and trunk; flexion, abduction and medial rotation at hip"
+      },
+      {
+        name: "Biceps femoris",
+        origin: "Long head: ischial tuberosity; short head: linea aspera and distal femur",
+        insertion: "Head of fibula; lateral condyle of tibia",
+        action: "Knee flexion; extension and lateral rotation at hip"
+      },
+      {
+        name: "Semimembranosus",
+        origin: "Ischial tuberosity",
+        insertion: "Posterior medial condyle of tibia",
+        action: "Knee flexion; extension and medial rotation at hip"
+      },
+      {
+        name: "Semitendinosus",
+        origin: "Ischial tuberosity",
+        insertion: "Medial aspect of proximal tibia",
+        action: "Knee flexion; extension and medial rotation at hip"
+      },
+      {
+        name: "Rectus femoris",
+        origin: "Anterior inferior iliac spine; superior acetabulum",
+        insertion: "Patella via quadriceps tendon; tibial tuberosity via patellar ligament",
+        action: "Extension at knee; flexion at hip"
+      },
+      {
+        name: "Vastus intermedius",
+        origin: "Anterior and lateral proximal femur",
+        insertion: "Patella via quadriceps tendon; tibial tuberosity via patellar ligament",
+        action: "Extension at knee"
+      },
+      {
+        name: "Vastus lateralis",
+        origin: "Greater trochanter; proximal half of linea aspera of femur",
+        insertion: "Patella via quadriceps tendon; tibial tuberosity via patellar ligament",
+        action: "Extension at knee"
+      },
+      {
+        name: "Vastus medialis",
+        origin: "Linea aspera of femur",
+        insertion: "Patella via quadriceps tendon; tibial tuberosity via patellar ligament",
+        action: "Extension at knee"
+      },
+      {
+        name: "Tibialis anterior",
+        origin: "Lateral condyle and proximal shaft of tibia",
+        insertion: "Metatarsal 1; medial cuneiform",
+        action: "Dorsiflexion and inversion of foot"
+      },
+      {
+        name: "Gastrocnemius",
+        origin: "Femoral condyles",
+        insertion: "Calcaneus via calcaneal (Achilles) tendon",
+        action: "Plantar flexion of foot; flexion at knee"
+      },
+      {
+        name: "Soleus",
+        origin: "Posterior proximal fibula and tibia",
+        insertion: "Calcaneus via calcaneal tendon",
+        action: "Plantar flexion of foot"
+      },
+      {
+        name: "Fibularis (peroneus) longus",
+        origin: "Proximal two-thirds of lateral fibula",
+        insertion: "Metatarsal 1 and medial cuneiform (curves under foot)",
+        action: "Eversion of foot; plantar flexion"
+      }
+      // Add more muscles here following the same pattern if you want.
+    ];
+
+    // 2. Helper: shuffle an array (Fisher–Yates)
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    // 3. Quiz state
+    let questionOrder = shuffle([...Array(MUSCLE_QUESTIONS.length).keys()]);
+    let currentIndex = 0;
+    let correctCount = 0;
+    let totalCount = 0;
+
+    // 4. DOM elements
+    const questionCounterEl = document.getElementById("question-counter");
+    const scoreEl = document.getElementById("score");
+    const questionTextEl = document.getElementById("question-text");
+    const originTextEl = document.getElementById("origin-text");
+    const insertionTextEl = document.getElementById("insertion-text");
+    const actionTextEl = document.getElementById("action-text");
+    const choicesContainer = document.getElementById("choices");
+    const nextBtn = document.getElementById("next-btn");
+    const resultEl = document.getElementById("result");
+
+    // 5. Build a MCQ options set
+    function makeOptions(correctName) {
+      const uniqueNames = [...new Set(MUSCLE_QUESTIONS.map(m => m.name))];
+      const wrong = uniqueNames.filter(n => n !== correctName);
+      shuffle(wrong);
+      const options = [correctName, ...wrong.slice(0, 3)];
+      return shuffle(options);
+    }
+
+    // 6. Render one question
+    function showQuestion() {
+      if (currentIndex >= questionOrder.length) {
+        showFinalResult();
+        return;
+      }
+
+      nextBtn.disabled = true;
+      resultEl.classList.add("hidden");
+      resultEl.textContent = "";
+
+      const qIndex = questionOrder[currentIndex];
+      const muscle = MUSCLE_QUESTIONS[qIndex];
+
+      questionTextEl.textContent = "Which muscle fits this description?";
+      originTextEl.textContent = muscle.origin;
+      insertionTextEl.textContent = muscle.insertion;
+      actionTextEl.textContent = muscle.action;
+
+      questionCounterEl.textContent = `Question ${currentIndex + 1} of ${questionOrder.length}`;
+      scoreEl.textContent = `Score: ${correctCount} / ${totalCount}`;
+
+      // Build choices
+      choicesContainer.innerHTML = "";
+      const options = makeOptions(muscle.name);
+
+      options.forEach(option => {
+        const btn = document.createElement("button");
+        btn.className = "choice-btn";
+        btn.textContent = option;
+        btn.addEventListener("click", () => handleChoice(btn, option, muscle.name));
+        choicesContainer.appendChild(btn);
+      });
+    }
+
+    // 7. Handle answer
+    function handleChoice(button, chosen, correct) {
+      const buttons = document.querySelectorAll(".choice-btn");
+      buttons.forEach(b => b.disabled = true);
+
+      totalCount++;
+
+      if (chosen === correct) {
+        correctCount++;
+        button.classList.add("correct");
+        resultEl.textContent = "Correct!";
+      } else {
+        button.classList.add("incorrect");
+        const correctBtn = Array.from(buttons).find(b => b.textContent === correct);
+        if (correctBtn) correctBtn.classList.add("correct");
+        resultEl.textContent = `Not quite. The correct answer is: ${correct}.`;
+      }
+
+      resultEl.classList.remove("hidden");
+      scoreEl.textContent = `Score: ${correctCount} / ${totalCount}`;
+      nextBtn.disabled = false;
+    }
+
+    // 8. Final result
+    function showFinalResult() {
+      questionTextEl.textContent = "Quiz complete!";
+      originTextEl.textContent = "";
+      insertionTextEl.textContent = "";
+      actionTextEl.textContent = "";
+      choicesContainer.innerHTML = "";
+      nextBtn.disabled = true;
+
+      resultEl.classList.remove("hidden");
+      resultEl.textContent = `You answered ${correctCount} out of ${totalCount} correctly. Refresh the page to play again with a new order.`;
+    }
+
+    // 9. Next button
+    nextBtn.addEventListener("click", () => {
+      currentIndex++;
+      showQuestion();
+    });
+
+    // 10. Start!
+    showQuestion();
+  </script>
+</body>
+</html>
